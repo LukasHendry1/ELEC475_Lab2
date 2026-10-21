@@ -1,0 +1,13 @@
+# Environment
+.venv/
+__pycache__/
+*.pyc
+
+# Datasets (downloaded automatically by the scripts)
+data/
+
+# Model weights (included in the submission .zip, not the repo)
+checkpoints/*.pth
+
+# Assignment handout
+ELEC475_Lab2_Post-lab.pdf
