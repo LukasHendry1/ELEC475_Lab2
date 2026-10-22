@@ -1,88 +1,100 @@
-# ELEC 475: Lab 2 Starter Template
-## From LeNet-5 to AlexNet: An Architectural & Empirical Evolution
+# ELEC 475 Lab 2: From LeNet-5 to AlexNet
 
-Welcome to ELEC 475 Lab 2! This repository contains the starter code and scaffolding for both your **In-Lab (2-hour milestone)** and **Post-Lab (due Oct 22)** assignments.
+Lukas Hendry and Benjamin Syer
 
-### Directory Structure
+This repository implements and compares five CNN architectures on CIFAR-10 and Tiny ImageNet-200 at 64 × 64 resolution: LeNet-5, a modernized LeNet, AlexNet-64 with three normalization schemes, and the torchvision AlexNet. It covers a normalization ablation (none, LRN, BatchNorm2d), a data augmentation study, a two-dataset benchmark, and multi-seed evaluation.
+
+## Directory Structure
 
 ```text
-lab2_template/
+ELEC475_Lab2/
 ├── configs/
-│   └── config.py          # Centralized configuration dataclass (ExperimentConfig)
+│   └── config.py          # Experiment configuration dataclass
 ├── models/
-│   ├── lenet.py           # TODO [In-Lab Step 2]: Base LeNet-5 implementation
-│   ├── lenet_modern.py    # TODO [In-Lab Step 4]: Modernized LeNet (ReLU + Overlapping MaxPool)
-│   ├── alexnet.py         # TODO [Post-Lab Step 1]: Full 5-stage AlexNet with LRN/BatchNorm
-│   └── zoo.py             # Pre-built PyTorch Model Zoo adapter (torchvision.models.alexnet)
+│   ├── lenet.py           # Base LeNet-5 (Tanh + AvgPool)
+│   ├── lenet_modern.py    # Modernized LeNet (ReLU + overlapping MaxPool)
+│   ├── alexnet.py         # AlexNet-64 with --norm none / lrn / bn
+│   └── zoo.py             # torchvision AlexNet adapter
 ├── utils/
-│   ├── dataset.py         # Automated CIFAR-10 and Tiny ImageNet loaders
-│   ├── eda.py             # Exploratory Data Analysis tool (class distributions, RGB stats, imbalance ratio)
-│   ├── transforms.py      # TODO [Post-Lab Step 3]: PyTorch GPU data augmentation pipeline
-│   ├── metrics.py         # Loss, Top-1 accuracy, Macro/Micro F1, ConfusionMatrixTracker & EarlyStopping
-│   ├── seed.py            # Global deterministic seeding across Python, NumPy, PyTorch (CPU/CUDA)
+│   ├── dataset.py         # CIFAR-10 and Tiny ImageNet loaders
+│   ├── eda.py             # Exploratory data analysis
+│   ├── transforms.py      # Training augmentation pipeline
+│   ├── metrics.py         # Accuracy, Macro F1, confusion matrix, early stopping
+│   ├── seed.py            # Global seeding and Mean ± Std aggregation
 │   ├── visualization.py   # Training curve and ablation plotters
-│   └── profiler.py        # Timer (CUDA sync), ModelProfiler (FLOPs/MACs/Params)
-├── compare_models.py      # Multi-model complexity & FLOPs benchmarking CLI script
-├── demo_transforms.py     # Pre-Lab benchmark: PyTorch GPU Tensors vs OpenCV vs NumPy
-├── train.py               # Complete CLI training engine with Timer, ModelProfiler, Macro F1 & Early Stopping
-├── evaluate.py            # Checkpoint evaluation script with full classification report
-└── requirements.txt       # Python package dependencies (torch, torchvision, thop, torchinfo)
+│   └── profiler.py        # CUDA-synchronized Timer, FLOPs/MACs/params profiler
+├── plots/                 # EDA figures, loss/accuracy curves, ablation summary
+├── checkpoints/           # Trained weights (not tracked in git)
+├── train.py               # Training engine
+├── evaluate.py            # Checkpoint evaluation with classification report
+├── compare_models.py      # Params, MACs, FLOPs, latency and throughput benchmark
+├── demo_transforms.py     # OpenCV vs NumPy vs PyTorch transform comparison
+├── prelab_verify.py       # Environment and dataset verification
+├── commands.txt           # Exact commands for every experiment in the report
+├── github_repo.txt        # Repository URL
+├── requirements.txt       # Package dependencies
+└── requirements-lock.txt  # Pinned package versions
 ```
 
----
+## Setup
 
-### Step-by-Step Execution Guide
-
-#### 1. Setup Environment
-```powershell
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1   # Windows PowerShell (or source .venv/bin/activate on Linux/WSL/macOS)
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### 2. Run Pre-Lab Exploratory Data Analysis & Verification
-```powershell
-# 1. Run Comprehensive Dual-Dataset Exploratory Data Analysis (EDA):
-python utils/eda.py --dataset both
+CIFAR-10 downloads automatically on first use. Tiny ImageNet-200 is downloaded and extracted to `data/tiny-imagenet-200` on first use.
 
-# 2. Run Automated Environment & Dataset Verification:
+## Running the Experiments
+
+Every command used to produce the report's results is listed in [`commands.txt`](commands.txt). The main ones are:
+
+```bash
+# Pre-lab
+python -m utils.eda --dataset both
 python prelab_verify.py
+
+# Normalization study (CIFAR-10, 10 epochs)
+python train.py --model alexnet --norm {none,lrn,bn} --dataset cifar10 --epochs 10 --no-augment
+
+# Data augmentation study (CIFAR-10, 15 epochs)
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 15 [--no-augment]
+
+# Tiny ImageNet benchmark
+python train.py --model alexnet --norm bn --dataset tiny_imagenet --epochs 10
+
+# Complexity benchmark
+python compare_models.py --dataset cifar10
 ```
 
-#### 3. In-Lab Milestone (2 Hours)
-- Open `models/lenet.py` and implement the `TODO [IN-LAB STEP 2]` sections.
-- Verify architecture: `python -m models.lenet`
-- Train Base LeNet (real-time epoch timers and FLOPs logged):
-  ```powershell
-  python train.py --model lenet --dataset cifar10 --epochs 5 --save-model checkpoints/lenet_baseline.pth --plot-file plots/loss_lenet.png
-  ```
-- Open `models/lenet_modern.py` and implement the `TODO [IN-LAB STEP 4]` sections.
-- Verify architecture: `python -m models.lenet_modern`
-- Train Modernized LeNet:
-  ```powershell
-  python train.py --model lenet_modern --dataset cifar10 --epochs 5 --save-model checkpoints/lenet_modern.pth --plot-file plots/loss_lenet_modern.png
-  ```
-- Demonstrate results to a TA for **In-Lab Checkoff (3 Marks)**!
+Useful `train.py` options: `--model {lenet,lenet_modern,alexnet,zoo_alexnet}`, `--norm {none,lrn,bn}`, `--dataset {cifar10,tiny_imagenet}`, `--epochs`, `--lr`, `--batch-size`, `--seed`, `--no-augment`, `--save-model`, `--plot-file`, `--early-stopping`.
 
-#### 4. Post-Lab Milestones (Due Oct 22)
-- Open `models/alexnet.py` and implement the `TODO [POST-LAB STEP 1 & 2]` sections.
-- Run the normalization ablation study (using multi-seed reproducibility and early stopping):
-  ```powershell
-  python train.py --model alexnet --norm none --dataset cifar10 --epochs 15 --seed 42 --early-stopping --save-model checkpoints/alexnet_none.pth --plot-file plots/loss_none.png
-  python train.py --model alexnet --norm lrn --dataset cifar10 --epochs 15 --seed 42 --early-stopping --save-model checkpoints/alexnet_lrn.pth --plot-file plots/loss_lrn.png
-  python train.py --model alexnet --norm bn --dataset cifar10 --epochs 15 --seed 42 --early-stopping --save-model checkpoints/alexnet_bn.pth --plot-file plots/loss_bn.png
-  ```
-- Open `utils/transforms.py` and implement the `TODO [POST-LAB STEP 3]` data augmentations.
-- Train AlexNet with data augmentation and early stopping:
-  ```powershell
-  python train.py --model alexnet --norm bn --dataset cifar10 --epochs 15 --seed 42 --early-stopping --save-model checkpoints/alexnet_bn_aug.pth --plot-file plots/loss_aug.png
-  ```
-- Benchmark model complexity and FLOPs across all models:
-  ```powershell
-  python compare_models.py --dataset cifar10
-  ```
-- Train PyTorch Zoo AlexNet for comparison:
-  ```powershell
-  python train.py --model zoo_alexnet --dataset cifar10 --epochs 15 --seed 42 --early-stopping --save-model checkpoints/zoo_alexnet.pth
-  ```
-- Author your formal report per instructions in [`POSTLAB.md`](../POSTLAB.md) and submit to OnQ!
+All runs are seeded with `utils/seed.py` and use deterministic cuDNN, so re-running a command with the same seed reproduces its metrics exactly.
+
+## Training Setup
+
+| Setting | Value |
+|---|---|
+| Input resolution | 3 × 64 × 64 |
+| Optimizer | Adam, LR = 0.001, weight decay = 1e-4 |
+| Batch size | 128 |
+| Seeds | 42 (main results); 42, 123 and 2026 (multi-seed study) |
+| Augmentation | RandomCrop(64, padding=4, reflect), RandomHorizontalFlip, ColorJitter(0.2, 0.2, 0.2) |
+| Hardware | NVIDIA GeForce RTX 3060 Laptop GPU |
+
+## Results Summary
+
+Best validation accuracy after 10 epochs, seed 42:
+
+| Model | Params (M) | FLOPs (M) | CIFAR-10 Val Acc (%) | Tiny ImageNet Val Acc (%) |
+|---|---|---|---|---|
+| Base LeNet-5 | 0.338 | 7.17 | 55.85 | 12.31 |
+| Modernized LeNet | 0.446 | 9.19 | 66.27 | 19.96 |
+| AlexNet-64 (No Norm) | 6.609 | 436.70 | 73.33 | 0.50 |
+| AlexNet-64 + LRN | 6.609 | 436.70 | 73.52 | 0.50 |
+| AlexNet-64 + BatchNorm | 6.611 | 437.97 | 79.84 | 30.06 |
+| AlexNet-64 + BN + Aug | 6.611 | 437.97 | 79.74 | 30.02 |
+| torchvision AlexNet | 57.045 | 188.20 | 65.98 | 10.31 |
+
+Full results, analysis and multi-seed statistics are in the lab report.

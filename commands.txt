@@ -67,7 +67,7 @@ python compare_models.py --dataset tiny_imagenet
 # CIFAR-10
 python train.py --model lenet --dataset cifar10 --epochs 10 --no-augment --plot-file plots/loss_cifar10_lenet_10ep.png
 python train.py --model lenet_modern --dataset cifar10 --epochs 10 --no-augment --plot-file plots/loss_cifar10_lenet_modern_10ep.png
-python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10 --plot-file plots/loss_cifar10_alexnet_bn_aug_10ep.png
 python train.py --model zoo_alexnet --dataset cifar10 --epochs 10 --no-augment --save-model checkpoints/zoo_alexnet.pth --plot-file plots/loss_zoo_alexnet.png
 
 # Tiny ImageNet-200 (AlexNet + BN + Aug is the Step 4 run above)
