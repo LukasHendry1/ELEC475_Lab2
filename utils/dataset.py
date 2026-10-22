@@ -6,8 +6,9 @@ import os
 import urllib.request
 import zipfile
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import CIFAR10, ImageFolder
+from torchvision.datasets.folder import default_loader
 from .transforms import get_train_transforms, get_test_transforms
 
 CIFAR10_CLASSES = [
@@ -16,6 +17,26 @@ CIFAR10_CLASSES = [
 ]
 
 TINY_IMAGENET_URL = "http://cs231n.stanford.edu/tiny-imagenet-200.zip"
+
+class TinyImageNetVal(Dataset):
+    """Tiny ImageNet val split: images/ folder labelled by val_annotations.txt."""
+    def __init__(self, val_dir: str, class_to_idx: dict, transform=None):
+        self.transform = transform
+        self.samples = []
+        with open(os.path.join(val_dir, "val_annotations.txt")) as f:
+            for line in f:
+                fname, wnid = line.split("\t")[:2]
+                self.samples.append((os.path.join(val_dir, "images", fname), class_to_idx[wnid]))
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        path, target = self.samples[idx]
+        img = default_loader(path)
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
 
 def download_and_extract_tiny_imagenet(data_dir: str = "./data"):
     target_dir = os.path.join(data_dir, "tiny-imagenet-200")
@@ -64,7 +85,8 @@ def get_dataloaders(
         val_tf   = get_test_transforms("tiny_imagenet", target_size=target_size)
 
         train_set = ImageFolder(root=train_dir, transform=train_tf)
-        val_set   = ImageFolder(root=train_dir, transform=val_tf)
+        # Use the held-out val split (flat folder + annotations file), not the training images
+        val_set   = TinyImageNetVal(os.path.join(tiny_dir, "val"), train_set.class_to_idx, transform=val_tf)
         num_classes = 200
         classes = train_set.classes
 

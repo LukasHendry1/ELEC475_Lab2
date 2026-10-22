@@ -9,5 +9,8 @@ data/
 # Model weights (included in the submission .zip, not the repo)
 checkpoints/*.pth
 
+# Raw experiment logs (local only)
+logs/
+
 # Assignment handout
 ELEC475_Lab2_Post-lab.pdf

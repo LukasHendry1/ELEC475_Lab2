@@ -1,0 +1,107 @@
+ELEC 475 Lab 2 - Commands to reproduce all results
+
+# ---------------------------------------------------------------------------
+# 0. Environment setup
+# ---------------------------------------------------------------------------
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+
+# ---------------------------------------------------------------------------
+# 1. Pre-lab: EDA and verification
+# ---------------------------------------------------------------------------
+python -m utils.eda --dataset both
+python prelab_verify.py
+python demo_transforms.py
+
+
+# ---------------------------------------------------------------------------
+# 2. In-lab: LeNet-5 and Modernized LeNet (CIFAR-10, 5 epochs)
+# ---------------------------------------------------------------------------
+python -m models.lenet
+python train.py --model lenet --dataset cifar10 --epochs 5 --no-augment --save-model checkpoints/lenet_baseline.pth --plot-file plots/loss_lenet.png
+
+python -m models.lenet_modern
+python train.py --model lenet_modern --dataset cifar10 --epochs 5 --no-augment --save-model checkpoints/lenet_modern.pth --plot-file plots/loss_lenet_modern.png
+
+
+# ---------------------------------------------------------------------------
+# 3. Post-lab Step 1: AlexNet-64 parameter check
+# ---------------------------------------------------------------------------
+python -m models.alexnet
+
+
+# ---------------------------------------------------------------------------
+# 4. Post-lab Step 2: Normalization study (CIFAR-10, 10 epochs)
+# ---------------------------------------------------------------------------
+python train.py --model alexnet --norm none --dataset cifar10 --epochs 10 --no-augment --save-model checkpoints/alexnet_none.pth --plot-file plots/loss_alexnet_none.png
+python train.py --model alexnet --norm lrn --dataset cifar10 --epochs 10 --no-augment --save-model checkpoints/alexnet_lrn.pth --plot-file plots/loss_alexnet_lrn.png
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10 --no-augment --save-model checkpoints/alexnet_bn.pth --plot-file plots/loss_alexnet_bn.png
+
+
+# ---------------------------------------------------------------------------
+# 5. Post-lab Step 3: Data augmentation (CIFAR-10, 15 epochs)
+# ---------------------------------------------------------------------------
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 15 --no-augment --save-model checkpoints/alexnet_no_aug.pth --plot-file plots/loss_no_aug.png
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 15 --save-model checkpoints/alexnet_with_aug.pth --plot-file plots/loss_with_aug.png
+
+
+# ---------------------------------------------------------------------------
+# 6. Post-lab Step 4: Tiny ImageNet-200 (10 epochs, held-out val split)
+# ---------------------------------------------------------------------------
+python train.py --model alexnet --norm bn --dataset tiny_imagenet --epochs 10 --save-model checkpoints/alexnet_tiny_imagenet.pth --plot-file plots/loss_tiny_imagenet.png
+
+
+# ---------------------------------------------------------------------------
+# 7. Post-lab Step 5: Complexity benchmark (Table 7.1)
+# ---------------------------------------------------------------------------
+python compare_models.py --dataset cifar10
+python compare_models.py --dataset tiny_imagenet
+
+
+# ---------------------------------------------------------------------------
+# 8. Master ablation tables 7.3a / 7.3b (10 epochs, seed 42)
+#    AlexNet No Norm / LRN / BN on CIFAR-10 are the Step 2 runs above.
+# ---------------------------------------------------------------------------
+# CIFAR-10
+python train.py --model lenet --dataset cifar10 --epochs 10 --no-augment --plot-file plots/loss_cifar10_lenet_10ep.png
+python train.py --model lenet_modern --dataset cifar10 --epochs 10 --no-augment --plot-file plots/loss_cifar10_lenet_modern_10ep.png
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10
+python train.py --model zoo_alexnet --dataset cifar10 --epochs 10 --no-augment --save-model checkpoints/zoo_alexnet.pth --plot-file plots/loss_zoo_alexnet.png
+
+# Tiny ImageNet-200 (AlexNet + BN + Aug is the Step 4 run above)
+python train.py --model lenet --dataset tiny_imagenet --epochs 10 --no-augment
+python train.py --model lenet_modern --dataset tiny_imagenet --epochs 10 --no-augment
+python train.py --model alexnet --norm none --dataset tiny_imagenet --epochs 10 --no-augment
+python train.py --model alexnet --norm lrn --dataset tiny_imagenet --epochs 10 --no-augment
+python train.py --model alexnet --norm bn --dataset tiny_imagenet --epochs 10 --no-augment
+python train.py --model zoo_alexnet --dataset tiny_imagenet --epochs 10 --no-augment
+
+
+# ---------------------------------------------------------------------------
+# 9. Multi-seed evaluation (CIFAR-10, 10 epochs, seeds 123 and 2026)
+#    Seed 42 for every configuration is the corresponding run above.
+# ---------------------------------------------------------------------------
+python train.py --model lenet --dataset cifar10 --epochs 10 --no-augment --seed 123
+python train.py --model lenet --dataset cifar10 --epochs 10 --no-augment --seed 2026
+python train.py --model lenet_modern --dataset cifar10 --epochs 10 --no-augment --seed 123
+python train.py --model lenet_modern --dataset cifar10 --epochs 10 --no-augment --seed 2026
+python train.py --model alexnet --norm none --dataset cifar10 --epochs 10 --no-augment --seed 123
+python train.py --model alexnet --norm none --dataset cifar10 --epochs 10 --no-augment --seed 2026
+python train.py --model alexnet --norm lrn --dataset cifar10 --epochs 10 --no-augment --seed 123
+python train.py --model alexnet --norm lrn --dataset cifar10 --epochs 10 --no-augment --seed 2026
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10 --no-augment --seed 123
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10 --no-augment --seed 2026
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10 --seed 123
+python train.py --model alexnet --norm bn --dataset cifar10 --epochs 10 --seed 2026
+python train.py --model zoo_alexnet --dataset cifar10 --epochs 10 --no-augment --seed 123
+python train.py --model zoo_alexnet --dataset cifar10 --epochs 10 --no-augment --seed 2026
+
+
+# ---------------------------------------------------------------------------
+# 10. Checkpoint evaluation (optional)
+# ---------------------------------------------------------------------------
+python evaluate.py --checkpoint checkpoints/lenet_baseline.pth --model lenet --dataset cifar10
+python evaluate.py --checkpoint checkpoints/lenet_modern.pth --model lenet_modern --dataset cifar10
+python evaluate.py --checkpoint checkpoints/alexnet_bn.pth --model alexnet --norm bn --dataset cifar10
